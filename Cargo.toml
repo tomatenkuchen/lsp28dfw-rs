@@ -16,6 +16,7 @@ rust-version = "1.78"
 
 [dependencies]
 embedded-hal = "1.0"
+uom = "0.36.0"
 
 [dev-dependencies]
 linux-embedded-hal = "0.4"

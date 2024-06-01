@@ -1,7 +1,10 @@
+extern crate uom;
+use uom::si::f32::*
+use uom::si::pressure;
 use crate::{BitFlags, Ds1307, Error, Register};
 use embedded_hal::i2c::I2c;
 
-impl<I2C, E> Ds1307<I2C>
+impl<I2C, E> LPS28DFW<I2C>
 where
     I2C: I2c<Error = E>,
 {
@@ -23,4 +26,13 @@ where
         // Clock Halt (CH) bit should be set for oscillator to stop.
         self.set_register_bit_flag(Register::SECONDS, BitFlags::CH)
     }
+
+    pub fn enable_interrupt(type : InterruptPressureLevel, threshold : uom::si::pressure) -> Result<bool, Error<E>> {
+        
+    }
+
+    pub fn disable_interrupt(type: InterruptPressureLevel) -> Result<bool, Error<E>> {
+
+    }
+
 }
