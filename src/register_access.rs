@@ -6,7 +6,7 @@ struct Register {
     default_value:u8
 }
 
-enum Registers {
+pub enum Registers {
     interrupt_cfg(Register) = {address:0x0b, default_value:0x00},
     threshold_pressure_low(Register) = {address:0x0c, default_value:0x00},
     threshold_pressure_high(Register) = {address:0x0d, default_value:0x00},
@@ -35,11 +35,6 @@ enum Registers {
     fifo_data_out_pressure_xl(Register) = {address:0x78, default_value:0x00},
     fifo_data_out_pressure_l(Register) = {address:0x79, default_value:0x00},
     fifo_data_out_pressure_h(Register) = {address:0x7a, default_value:0x00},
-}
-
-pub enum InterruptPressureLevel {
-    pressure_low,
-    pressure_high,
 }
 
 impl<I2C, E> LPS28DFW<I2C> where I2C: I2c<Error = E>, {
