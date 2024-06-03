@@ -27,10 +27,7 @@ pub enum Averaging {
     over_512 = 7,
 }
 
-impl<I2C, E> LPS28DFW<I2C>
-where
-    I2C: I2c<Error = E>,
-{
+impl<I2C, E> LPS28DFW<I2C> where I2C: I2c<Error = E>, {
     pub fn start(&mut self, sampling_rate: SamplingRate, average: Averaging) -> Result<bool, Error<E>> {
         let reg = sampling_rate as u8 << 3 || average as u8;
         self.write_register(Registers::config_1, reg)
