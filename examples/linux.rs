@@ -1,16 +1,13 @@
-use ds1307::{DateTimeAccess, Ds1307, NaiveDate};
 use linux_embedded_hal::I2cdev;
+use LPS28DFW;
 
 fn main() {
     let dev = I2cdev::new("/dev/i2c-1").unwrap();
-    let mut rtc = Ds1307::new(dev);
-    let datetime = NaiveDate::from_ymd_opt(2022, 1, 2)
-        .unwrap()
-        .and_hms_opt(19, 59, 58)
+    let mut sens_p = LPS28DFW::LPS28DFW::new(dev, LPS28DFW::Address::low);
+    sens_p
+        .start(LPS28DFW::SamplingRate::Hz_1, LPS28DFW::Averaging::over_4)
         .unwrap();
-    rtc.set_datetime(&datetime).unwrap();
-    // ...
-    let datetime = rtc.datetime().unwrap();
-    println!("{datetime}");
-    // This will print something like: 2022-01-02 19:59:58
+    let p = sens_p.get_pressure().unwrap();
+    let t = sens_p.get_temperature().unwrap();
+    println!("pressure in kPa: {p}\ntemperature in °C: {t}");
 }

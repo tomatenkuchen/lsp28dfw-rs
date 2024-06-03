@@ -1,7 +1,6 @@
 extern crate uom;
 use uom::si::f32::*
 use uom::si::pressure;
-use crate::{BitFlags, Ds1307, Error, Register};
 use embedded_hal::i2c::I2c;
 
 pub enum SamplingRate{
