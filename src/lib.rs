@@ -2,14 +2,12 @@
 #![deny(missing_docs)]
 #![no_std]
 
+extern crate embedded_hal;
 extern crate uom;
+
 mod register_access;
 
-use embedded_hal::i2c::I2c;
-use uom::si::f32::*
-use uom::si::pressure;
-
-pub mod LPS28DFW {
+pub mod lps28dfw {
 
     /// All possible errors in this crate
     #[derive(Debug)]
@@ -21,8 +19,8 @@ pub mod LPS28DFW {
     }
 
     pub enum I2CAddress {
-        low = 0x5C,
-        high = 0x5D,
+        Low = 0x5C,
+        High = 0x5D,
     }
 
     #[derive(Debug, Default)]
@@ -32,18 +30,19 @@ pub mod LPS28DFW {
         /// i2c address, depending on
         address: I2CAddress,
         /// measuring range for pressure
-        measuring_range_p : pressure,
+        measuring_range_p: uom::si::pressure::kilopascal,
     }
 
     impl<I2C, E> LPS28DFW<I2C>
     where
-        I2C: I2c<Error = E>,
+        I2C: embedded_hal::i2c::I2c<Error = E>,
     {
         /// Create a new instance.
-        pub fn new(i2c: I2C, address: I2CAddress) -> Self {
+        pub fn new(_i2c: I2C, _address: I2CAddress, range: uom::si::pressure::kilopascal) -> Self {
             LPS28DFW {
-                i2c: i2c,
-                address: address,
+                i2c: _i2c,
+                address: _address,
+                measuring_range_p: range,
             }
         }
 

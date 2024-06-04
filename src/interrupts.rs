@@ -1,8 +1,7 @@
-mod register_access;
-
-use uom::si::f32::*
+use crate::register_access;
+use uom::si::f32::*;
 use uom::si::pressure;
-use crate::{LPS28DFW, Error, register_access};
+use crate::{lps28dfw, Error, register_access};
 use embedded_hal::i2c::I2c;
 
 mod Interrupts {
