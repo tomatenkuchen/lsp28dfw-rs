@@ -1,32 +1,35 @@
-extern crate uom;
+mod register_access;
+
 use uom::si::f32::*
 use uom::si::pressure;
-use crate::{BitFlags, Ds1307, Error, Register};
+use crate::{LPS28DFW, Error, register_access};
 use embedded_hal::i2c::I2c;
-use create::Registers;
 
-pub enum InterruptPressureLevel {
-    pressure_low,
-    pressure_high,
-}
+mod Interrupts {
 
-impl<I2C, E> LPS28DFW<I2C> where I2C: I2c<Error = E>, {
-    pub fn enable_interrupt(&mut self, type : InterruptPressureLevel, threshold : uom::si::pressure) -> Result<bool, Error<E>> {
-        let bits = match type {
-            pressure_low => 0x1u8
-            pressure_high => 0x2u8
-        }
-        self.set_bits(Registers::interrupt_cfg.address, bits)
-        todo!("write limit to register")
+    pub enum InterruptPressureLevel {
+        pressure_low,
+        pressure_high,
     }
 
-    pub fn disable_interrupt(&mut self, type: InterruptPressureLevel) -> Result<bool, Error<E>> {
-        let bits = match type {
-            pressure_low => 0x1u8
-            pressure_high => 0x2u8
+    impl<I2C, E> LPS28DFW<I2C> where I2C: I2c<Error = E>, {
+        pub fn enable_interrupt(&mut self, type : InterruptPressureLevel, threshold : pressure) -> Result<bool, Error<E>> {
+            let bits = match type {
+                pressure_low => 0x1u8
+                pressure_high => 0x2u8
+            }
+            self.set_bits(register_access::Registers::interrupt_cfg.address, bits)
+            todo!("write limit to register")
         }
-        self.clear_bits(Registers::interrupt_cfg.address, bits)
-    }
-}
 
+        pub fn disable_interrupt(&mut self, type: InterruptPressureLevel) -> Result<bool, Error<E>> {
+            let bits = match type {
+                pressure_low => 0x1u8
+                pressure_high => 0x2u8
+            }
+            self.clear_bits(register_access::Registers::interrupt_cfg.address, bits)
+        }
+    }
+
+}
 

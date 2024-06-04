@@ -1,6 +1,8 @@
 use crate::{Error, LPS28DFW};
 use embedded_hal::i2c::I2c;
 
+mod register_access{
+
 struct Register {
     address:u8,
     default_value:u8
@@ -62,4 +64,5 @@ impl<I2C, E> LPS28DFW<I2C> where I2C: I2c<Error = E>, {
         reg &= ~bits;
         self.write_register(register, reg)
     }
+}
 }
