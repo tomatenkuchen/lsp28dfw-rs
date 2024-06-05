@@ -5,9 +5,9 @@
 extern crate embedded_hal;
 extern crate uom;
 
-mod register_access;
-
 pub mod lps28dfw {
+
+    mod register_access;
 
     /// All possible errors in this crate
     #[derive(Debug)]

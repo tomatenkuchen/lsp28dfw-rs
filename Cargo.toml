@@ -11,8 +11,6 @@ categories = ["embedded", "hardware-support", "no-std"]
 homepage = "https://github.com/tomatenkuchen/lps28dfw"
 documentation = "https://docs.rs/lps28dfw"
 include = ["/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE-MIT"]
-# edition = "2024"
-# rust-version = "1.78"
 
 [dependencies]
 embedded-hal = "1.0"

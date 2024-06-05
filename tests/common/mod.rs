@@ -1,5 +1,5 @@
-use ds1307::Ds1307;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTrans};
+use lps28dfw::LPS28DFW;
 
 pub const ADDR: u8 = 0b110_1000;
 

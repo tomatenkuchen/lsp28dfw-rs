@@ -1,9 +1,7 @@
-mod register_access;
-
-use uom::si::f32::*
-use uom::si::pressure;
+use uom::si::f32::*;
+use uom::si::pressure::kilopascal;
 use embedded_hal::i2c::I2c;
-use crate::{LPS28DFW, Error, I2C};
+use super::{LPS28DFW, Error, I2C};
 
 mod run {
 
@@ -32,7 +30,7 @@ mod run {
 
     impl<I2C, E> LPS28DFW<I2C> where I2C: I2c<Error = E>, {
         pub fn start(&mut self, sampling_rate: SamplingRate, average: Averaging) -> Result<bool, Error<E>> {
-            let reg = sampling_rate as u8 << 3 || average as u8;
+            let reg : u8 = sampling_rate as u8 << 3 || average as u8;
             self.write_register(Registers::config_1, reg)
         }
 
