@@ -37,6 +37,8 @@ fn main() {
     println!("{pressure} kPa");
 }
 
+```
+
 ## Todos
 
 - [ ] fifo control and status methods
@@ -46,7 +48,6 @@ fn main() {
 - [ ] autoresets
 - [ ] update tests
 - [ ] create raspberry pi example for i2c testing
-```
 
 ## Minimum Supported Rust Version (MSRV)
 
