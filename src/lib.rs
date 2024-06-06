@@ -15,6 +15,8 @@ pub enum Error<E> {
     I2C(E),
     /// Invalid input data.
     InvalidInputData,
+    /// device not available
+    DeviceIdentityFailure,
 }
 
 #[derive(Debug, Default, Copy, Clone)]
@@ -30,7 +32,7 @@ enum Registers {
     InterruptCfg = 0x0b,
     ThresholdPressureLow = 0x0c,
     ThresholdPressureHigh = 0x0d,
-    TnterfaceControl = 0x0e,
+    InterfaceControl = 0x0e,
     WhoAmI = 0x0f,
     Control1 = 0x10,
     Control2 = 0x11,
@@ -102,10 +104,11 @@ where
         &mut self,
         interrupt_pressure_level: InterruptPressureLevel,
         threshold: Pressure,
+        make_interrupt_latched: bool,
     ) -> Result<(), Error<E>> {
-        // set interrupt level comparison
-        self.set_bits(Registers::InterruptCfg, interrupt_pressure_level as u8)?;
-
+        // set interrupt level comparison and output behaviour
+        let interrupt_config: u8 = (interrupt_pressure_level as u8) | ((make_interrupt_latched as u8) << 2);
+        self.set_bits(Registers::InterruptCfg, interrupt_config)?;
 
         // calculate register value for threshold from input and range
         let reg_thresh = match self.measuring_range_p {
@@ -129,6 +132,24 @@ where
         interrupt_pressure_level: InterruptPressureLevel,
     ) -> Result<(), Error<E>> {
         self.clear_bits(Registers::InterruptCfg, interrupt_pressure_level as u8)
+    }
+
+    pub fn identify(self) -> Result<(), Error<E>> {
+        const IDENTIFIER: u8 = 0xB4;
+        let idn = self.read_register(Registers::WhoAmI)?;
+        if idn != IDENTIFIER {
+            Error::DeviceIdentityFailure
+        }else{
+            Ok(())
+        }
+    }
+
+    pub fn interface_control(mut self,
+    disable_data_ready_pin_pulldown: bool,
+    enable_sda_pin_pullup: bool,
+        enable_i3c_data_ready_pin: bool) -> Result<(), Error<E>>{
+        let reg: u8 = (disable_data_ready_pin_pulldown as u8) << 2 | (enable_sda_pin_pullup as u8) << 4 | (enable_i3c_data_ready_pin as u8) << 5;
+        self.write_register(Registers::InterfaceControl, reg)
     }
 
     fn write_register(&mut self, register: Registers, data: u8) -> Result<(), Error<E>> {
