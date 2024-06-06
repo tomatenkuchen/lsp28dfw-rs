@@ -2,6 +2,10 @@
 #![deny(missing_docs)]
 #![no_std]
 
+//! rust driver for ST LPS28DFW pressure sensor over i2c bus
+//! generalized by embedded_hal abstraction level to run on all
+//! platforms supported by embedded_hal
+
 extern crate embedded_hal;
 extern crate uom;
 
@@ -18,43 +22,77 @@ pub enum Error<E> {
     DeviceIdentityFailure,
 }
 
+/// the sensor supports multiple address via a address pin.
+/// if the address pin is connected to ground, look for the
+/// sensor on Low, otherwise on High
 #[derive(Debug, Default, Copy, Clone)]
 pub enum I2CAddress {
+    /// low address on i2c bus
     #[default]
     Low = 0x5C,
+    /// high address
     High = 0x5D,
 }
 
+/// all registers with their register address
 #[repr(u8)]
 #[derive(Copy, Clone)]
 enum Registers {
+    /// interrupt and status related configurations
     InterruptCfg = 0x0b,
+    /// interrupt threshold lower bits
     ThresholdPressureLow = 0x0c,
+    /// interrupt threshold higher bits
     ThresholdPressureHigh = 0x0d,
+    /// pinout control on some pins
     InterfaceControl = 0x0e,
+    /// identification number
     WhoAmI = 0x0f,
+    /// control on data aquisition speed an averaging
     Control1 = 0x10,
+    /// aquisition control
     Control2 = 0x11,
+    /// interface and interrupt controls
     Control3 = 0x12,
+    /// interrupt, fifo and data ready signals
     Control4 = 0x13,
+    /// fifo controls
     FifoControl = 0x14,
+    /// fifo watermark
     FifoWatermark = 0x15,
+    /// reference pressure lower bits
     ReferencePressureLow = 0x16,
+    /// reference pressure higher bits
     ReferencePressureHigh = 0x17,
+    /// special i3c interface
     I3cInterfaceControl = 0x19,
+    /// pressure offset register lower bits
     PressureOffsetLow = 0x1a,
+    /// pressure offset register higher bits
     PressureOffsetHigh = 0x1b,
+    /// interrupt status register
     InterruptSource = 0x24,
+    /// fifo status
     FifoStatus1 = 0x25,
+    /// fifo status
     FifoStatus2 = 0x26,
+    /// sensor status
     Status = 0x27,
+    /// pressure value lower bits
     PressureOutXtraLow = 0x28,
+    /// pressure sensor low bits
     PressureOutL = 0x29,
+    /// ressure sensor high bits
     PressureOutH = 0x2a,
+    /// temperature sensor low bits
     TemperatureoutL = 0x2b,
+    /// temperature sensor high bits
     TemperatureoutH = 0x2c,
+    /// fifo control
     FifoDataOutPressureXtraLow = 0x78,
+    /// fifo control
     FifoDataOutPressureLow = 0x79,
+    /// fifo control
     FifoDataOutPressureHigh = 0x7a,
 }
 
@@ -127,19 +165,18 @@ where
         match self.measuring_range_p {
             Range::Range1260hPa => {
                 if threshold_hPa >= 1260_f32 {
-                    Err(Error::InvalidInputData)
+                    return Err(Error::InvalidInputData);
                 }
             }
             Range::Range4060hPa => {
                 if threshold_hPa >= 4060_f32 {
-                    Err(Error::InvalidInputData)
+                    return Err(Error::InvalidInputData);
                 }
             }
-            _ => {
-                if threshold_hPa <= 0_f32 {
-                    Err(Error::InvalidInputData)
-                }
-            }
+        }
+
+        if threshold_hPa <= 0_f32 {
+            return Err(Error::InvalidInputData);
         }
 
         // calculate register value for threshold from input and range
