@@ -1,9 +1,9 @@
-use super::{Error, LPS28DFW};
+use crate::lps28dfw::{Error, LPS28DFW};
 use embedded_hal::i2c::I2c;
 
 mod register_access {
     #[repr(u8)]
-    pub enum Registers {
+    enum Registers {
         InterruptCfg(u8) = 0x0b,
         ThresholdPressureLow(u8) = 0x0c,
         ThresholdPressureHigh(u8) = 0x0d,
@@ -33,34 +33,34 @@ mod register_access {
         FifoDataOutPressureLow(u8) = 0x79,
         FifoDataOutPressureHigh(u8) = 0x7a,
     }
+}
 
-    impl<I2C, E> LPS28DFW<I2C>
-    where
-        I2C: I2c<Error = E>,
-    {
-        fn write_register(&mut self, register: Registers, data: u8) -> Result<(), Error<E>> {
-            let payload: [u8; 2] = [register as u8, data];
-            self.i2c.write(self.address, &payload).map_err(Error::I2C)
-        }
+impl<I2C, E> LPS28DFW<I2C>
+where
+    I2C: I2c<Error = E>,
+{
+    fn write_register(&mut self, register: Registers, data: u8) -> Result<(), Error<E>> {
+        let payload: [u8; 2] = [register as u8, data];
+        self.i2c.write(self.address, &payload).map_err(Error::I2C)
+    }
 
-        fn read_register(&mut self, register: Registers) -> Result<u8, Error<E>> {
-            let mut data = [0];
-            self.i2c
-                .write_read(self.address, &[register], &mut data)
-                .map_err(Error::I2C)
-                .and(Ok(data[0]))
-        }
+    fn read_register(&mut self, register: Registers) -> Result<u8, Error<E>> {
+        let mut data = [0];
+        self.i2c
+            .write_read(self.address, &[register], &mut data)
+            .map_err(Error::I2C)
+            .and(Ok(data[0]))
+    }
 
-        fn set_bits(&mut self, register: Registers, bits: u8) -> Result<(), Error<E>> {
-            let reg: u8 = read_register(register).unwrap();
-            reg |= bits;
-            write_register(register, reg)
-        }
+    fn set_bits(&mut self, register: Registers, bits: u8) -> Result<(), Error<E>> {
+        let reg: u8 = read_register(register).unwrap();
+        reg |= bits;
+        write_register(register, reg)
+    }
 
-        fn clear_bits(&mut self, register: Registers, bits: u8) -> Result<(), Error<E>> {
-            let reg: u8 = read_register(register).unwrap();
-            reg &= !bits;
-            self.write_register(register, reg)
-        }
+    fn clear_bits(&mut self, register: Registers, bits: u8) -> Result<(), Error<E>> {
+        let reg: u8 = read_register(register).unwrap();
+        reg &= !bits;
+        self.write_register(register, reg)
     }
 }

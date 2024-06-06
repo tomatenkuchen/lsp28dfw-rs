@@ -1,10 +1,9 @@
-use crate::register_access;
+use super::{LPS28DFW, Error};
+use embedded_hal::i2c::I2c;
 use uom::si::f32::*;
 use uom::si::pressure;
-use crate::{lps28dfw, Error, register_access};
-use embedded_hal::i2c::I2c;
 
-mod Interrupts {
+mod interrupts {
 
     pub enum InterruptPressureLevel {
         pressure_low,
