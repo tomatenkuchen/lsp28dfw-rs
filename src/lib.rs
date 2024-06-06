@@ -5,6 +5,9 @@
 extern crate embedded_hal;
 extern crate uom;
 
+use uom::si::pressure::Pressure;
+use uom::si::pressure::kilopascal;
+
 /// All possible errors in this crate
 #[derive(Debug)]
 pub enum Error<E> {
@@ -55,13 +58,26 @@ enum Registers {
 }
 
 #[derive(Debug)]
+#[derive(Copy, Clone)]
+pub enum Range{
+    Range126kPa = 0,
+    Range406kPa = 1,
+}
+
+#[derive(Debug)]
 pub struct LPS28DFW<I2C> {
     /// The concrete I²C device implementation.
     i2c: I2C,
     /// i2c address, depending on
     address: I2CAddress,
     /// measuring range for pressure
-    measuring_range_p: uom::si::pressure::kilopascal,
+    measuring_range_p: Range,
+}
+
+#[derive(Copy, Clone)]
+pub enum InterruptPressureLevel {
+    PressureLow = 1,
+    PressureHigh = 2,
 }
 
 impl<I2C, E> LPS28DFW<I2C>
@@ -69,7 +85,7 @@ where
     I2C: embedded_hal::i2c::I2c<Error = E>,
 {
     /// Create a new instance.
-    pub fn new(_i2c: I2C, _address: I2CAddress, range: uom::si::pressure::kilopascal) -> Self {
+    pub fn new(_i2c: I2C, _address: I2CAddress, range: Range) -> Self {
         LPS28DFW {
             i2c: _i2c,
             address: _address,
@@ -80,6 +96,39 @@ where
     /// Destroy driver instance, return I²C bus instance.
     pub fn destroy(self) -> I2C {
         self.i2c
+    }
+
+    pub fn enable_interrupt(
+        &mut self,
+        interrupt_pressure_level: InterruptPressureLevel,
+        threshold: Pressure,
+    ) -> Result<(), Error<E>> {
+        // set interrupt level comparison
+        self.set_bits(Registers::InterruptCfg, interrupt_pressure_level as u8)?;
+
+
+        // calculate register value for threshold from input and range
+        let reg_thresh = match self.measuring_range_p {
+            Range::Range126kPa => {
+                let reg_thresh_unlimited = threshold * 16;
+                let reg_thresh_limited = if reg_thresh_unlimited > Pressure::new<kilopascal>(126) {Pressure::new<kilopascal>(126)} else {reg_thresh_unlimited};
+                reg_thresh_limited
+            }
+            Range::Range406kPa => {
+                let reg_thresh_unlimited = threshold * 8;
+                let reg_thresh_limited = if reg_thresh_unlimited > Pressure::new<kilopascal>(406) {Pressure::new<kilopascal>(406)} else {reg_thresh_unlimited};
+                reg_thresh_limited
+            }
+        };
+        self.write_register(Registers::ThresholdPressureLow, reg_thresh as u8)?;
+        self.write_register(Registers::ThresholdPressureLow, (reg_thresh as u16 >> 8) as u8)
+    }
+
+    pub fn disable_interrupt(
+        &mut self,
+        interrupt_pressure_level: InterruptPressureLevel,
+    ) -> Result<(), Error<E>> {
+        self.clear_bits(Registers::InterruptCfg, interrupt_pressure_level as u8)
     }
 
     fn write_register(&mut self, register: Registers, data: u8) -> Result<(), Error<E>> {
@@ -99,13 +148,21 @@ where
 
     fn set_bits(&mut self, register: Registers, bits: u8) -> Result<(), Error<E>> {
         let reg: u8 = self.read_register(register)?;
-        let reg_set = reg | bits;
-        self.write_register(register, reg_set)
+        if (reg & bits) == 0 {
+            let reg_set = reg | bits;
+            self.write_register(register, reg_set)
+        } else {
+            Ok(())
+        }
     }
 
     fn clear_bits(&mut self, register: Registers, bits: u8) -> Result<(), Error<E>> {
         let reg: u8 = self.read_register(register)?;
-        let reg_clear = reg & !bits;
-        self.write_register(register, reg_clear)
+        if (reg & bits) != 0 {
+            let reg_clear = reg & !bits;
+            self.write_register(register, reg_clear)
+        } else {
+            Ok(())
+        }
     }
 }
