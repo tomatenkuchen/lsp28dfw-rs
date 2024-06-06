@@ -5,8 +5,7 @@
 extern crate embedded_hal;
 extern crate uom;
 
-use uom::si::pressure::Pressure;
-use uom::si::pressure::kilopascal;
+use uom::si::f32::*;
 
 /// All possible errors in this crate
 #[derive(Debug)]
@@ -59,13 +58,16 @@ enum Registers {
     FifoDataOutPressureHigh = 0x7a,
 }
 
-#[derive(Debug)]
-#[derive(Copy, Clone)]
-pub enum Range{
-    Range126kPa = 0,
-    Range406kPa = 1,
+/// measurement range for sensor
+#[derive(Debug, Copy, Clone)]
+pub enum Range {
+    /// minimum range of 1260 hPa
+    Range1260hPa = 0,
+    /// max range of 4060 hPa
+    Range4060hPa = 1,
 }
 
+/// configuration struct of sensor
 #[derive(Debug)]
 pub struct LPS28DFW<I2C> {
     /// The concrete I²C device implementation.
@@ -76,9 +78,12 @@ pub struct LPS28DFW<I2C> {
     measuring_range_p: Range,
 }
 
+/// pressure interrupt edge selection
 #[derive(Copy, Clone)]
 pub enum InterruptPressureLevel {
+    /// issue interrupt on pressure dropping under threshold
     PressureLow = 1,
+    /// issue interrupt on pressure rising above threshold
     PressureHigh = 2,
 }
 
@@ -100,33 +105,59 @@ where
         self.i2c
     }
 
+    /// enable an interrupt on pressure passing a threshold
+    ///
+    /// * `interrupt_pressure_level` - define what edge the interrupt is supposed to be signaled
+    /// * `threshold` - tell the sensor at what pressure level the interrupt should be issued
+    /// * `make_interrupt_latched` - define if interrupt signal on interrupt pin should be a
+    /// latched signal
     pub fn enable_interrupt(
         &mut self,
         interrupt_pressure_level: InterruptPressureLevel,
-        threshold: Pressure,
+        threshold: uom::si::f32::Pressure,
         make_interrupt_latched: bool,
     ) -> Result<(), Error<E>> {
         // set interrupt level comparison and output behaviour
-        let interrupt_config: u8 = (interrupt_pressure_level as u8) | ((make_interrupt_latched as u8) << 2);
-        self.set_bits(Registers::InterruptCfg, interrupt_config)?;
+        let interrupt_config: u8 =
+            (interrupt_pressure_level as u8) | ((make_interrupt_latched as u8) << 2);
+
+        let threshold_hPa = threshold.get::<uom::si::pressure::hectopascal>();
+
+        //check threshold input
+        match self.measuring_range_p {
+            Range::Range1260hPa => {
+                if threshold_hPa >= 1260_f32 {
+                    Err(Error::InvalidInputData)
+                }
+            }
+            Range::Range4060hPa => {
+                if threshold_hPa >= 4060_f32 {
+                    Err(Error::InvalidInputData)
+                }
+            }
+            _ => {
+                if threshold_hPa <= 0_f32 {
+                    Err(Error::InvalidInputData)
+                }
+            }
+        }
 
         // calculate register value for threshold from input and range
-        let reg_thresh = match self.measuring_range_p {
-            Range::Range126kPa => {
-                let reg_thresh_unlimited = threshold * 16;
-                let reg_thresh_limited = if reg_thresh_unlimited > Pressure::new<kilopascal>(126) {Pressure::new<kilopascal>(126)} else {reg_thresh_unlimited};
-                reg_thresh_limited
-            }
-            Range::Range406kPa => {
-                let reg_thresh_unlimited = threshold * 8;
-                let reg_thresh_limited = if reg_thresh_unlimited > Pressure::new<kilopascal>(406) {Pressure::new<kilopascal>(406)} else {reg_thresh_unlimited};
-                reg_thresh_limited
-            }
+        let reg_thresh: u16 = match self.measuring_range_p {
+            Range::Range1260hPa => threshold.value as u16 * 16,
+            Range::Range4060hPa => threshold.value as u16 * 8,
         };
+
+        self.set_bits(Registers::InterruptCfg, interrupt_config)?;
+
         self.write_register(Registers::ThresholdPressureLow, reg_thresh as u8)?;
-        self.write_register(Registers::ThresholdPressureLow, (reg_thresh as u16 >> 8) as u8)
+
+        self.write_register(Registers::ThresholdPressureLow, (reg_thresh >> 8) as u8)
     }
 
+    /// disables the selected threshold crossing interrupt
+    ///
+    /// * `interrupt_pressure_level` - select which interrupt you want to disable
     pub fn disable_interrupt(
         &mut self,
         interrupt_pressure_level: InterruptPressureLevel,
@@ -134,21 +165,27 @@ where
         self.clear_bits(Registers::InterruptCfg, interrupt_pressure_level as u8)
     }
 
-    pub fn identify(self) -> Result<(), Error<E>> {
+    /// sends an identify request to the sensor and expects a certain number as an answer
+    pub fn identify(mut self) -> Result<(), Error<E>> {
         const IDENTIFIER: u8 = 0xB4;
         let idn = self.read_register(Registers::WhoAmI)?;
         if idn != IDENTIFIER {
-            Error::DeviceIdentityFailure
-        }else{
+            Err(Error::DeviceIdentityFailure)
+        } else {
             Ok(())
         }
     }
 
-    pub fn interface_control(mut self,
-    disable_data_ready_pin_pulldown: bool,
-    enable_sda_pin_pullup: bool,
-        enable_i3c_data_ready_pin: bool) -> Result<(), Error<E>>{
-        let reg: u8 = (disable_data_ready_pin_pulldown as u8) << 2 | (enable_sda_pin_pullup as u8) << 4 | (enable_i3c_data_ready_pin as u8) << 5;
+    /// configure the pinout behaviour of some signaling pins
+    pub fn interface_control(
+        mut self,
+        disable_data_ready_pin_pulldown: bool,
+        enable_sda_pin_pullup: bool,
+        enable_i3c_data_ready_pin: bool,
+    ) -> Result<(), Error<E>> {
+        let reg: u8 = (disable_data_ready_pin_pulldown as u8) << 2
+            | (enable_sda_pin_pullup as u8) << 4
+            | (enable_i3c_data_ready_pin as u8) << 5;
         self.write_register(Registers::InterfaceControl, reg)
     }
 
