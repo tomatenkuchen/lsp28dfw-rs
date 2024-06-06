@@ -36,6 +36,16 @@ fn main() {
     let pressure = pressure_sensor.get_pressure().unwrap();
     println!("{pressure} kPa");
 }
+
+## Todos
+
+- [ ] fifo control and status methods
+- [ ] temperature sensor methods
+- [ ] pressure data output methods
+- [ ] oneshot mode
+- [ ] autoresets
+- [ ] update tests
+- [ ] create raspberry pi example for i2c testing
 ```
 
 ## Minimum Supported Rust Version (MSRV)
