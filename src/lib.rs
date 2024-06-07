@@ -34,6 +34,16 @@ pub enum I2CAddress {
     High = 0x5D,
 }
 
+/// Low pass filter strength
+#[derive(Debug, Default, Copy, Clone)]
+pub enum LowPassStrength {
+    /// ODR/4
+    #[default]
+    Low = 0,
+    /// ODR/9
+    High = 1,
+}
+
 /// all registers with their register address
 #[repr(u8)]
 #[derive(Copy, Clone)]
@@ -232,6 +242,47 @@ where
         } else {
             Ok(())
         }
+    }
+
+    /// enable low pass filter on results
+    pub fn low_pass_filter(
+        mut self,
+        enable: bool,
+        strength: LowPassStrength,
+    ) -> Result<(), Error<E>> {
+        if enable {
+            self.set_bits(Registers::Control2, 0x10)?;
+        } else {
+            self.clear_bits(Registers::Control2, 0x10)?;
+        }
+
+        match strength {
+            LowPassStrength::Low => self.set_bits(Registers::Control2, 0x20),
+            LowPassStrength::High => self.set_bits(Registers::Control2, 0x20),
+        }
+    }
+
+    /// shadow u16 and u24 bit registers until all bytes are written
+    pub fn block_data_update(mut self, enable: bool) -> Result<(), Error<E>> {
+        if enable {
+            self.set_bits(Registers::Control2, 0x8)
+        } else {
+            self.clear_bits(Registers::Control2, 0x8)
+        }
+    }
+
+    /// enable or disable pressure conversion on demand by writing 0 to Control1
+    pub fn oneshot(mut self, enable: bool) -> Result<(), Error<E>> {
+        if enable {
+            self.set_bits(Registers::Control2, 0x1)
+        } else {
+            self.clear_bits(Registers::Control2, 0x1)
+        }
+    }
+
+    /// resets all registers to startup
+    pub fn reset(mut self) -> Result<(), Error<E>> {
+        self.set_bits(Registers::Control2, 0x4)
     }
 
     /// configure the pinout behaviour of some signaling pins
