@@ -164,6 +164,8 @@ where
         interrupt_pressure_level: InterruptPressureLevel,
         threshold: uom::si::f32::Pressure,
         make_interrupt_latched: bool,
+        interrupt_pin_active_low: bool,
+        interrupt_pin_open_drain: bool,
     ) -> Result<(), Error<E>> {
         // set interrupt level comparison and output behaviour
         let interrupt_config: u8 =
@@ -195,7 +197,12 @@ where
             Range::Range4060hPa => threshold.value as u16 * 8,
         };
 
+        let reg_pin: u8 =
+            (interrupt_pin_active_low as u8) << 3 | (interrupt_pin_open_drain as u8) << 1;
+
         self.set_bits(Registers::InterruptCfg, interrupt_config)?;
+
+        self.set_bits(Registers::Control3, reg_pin)?;
 
         self.write_register(Registers::ThresholdPressureLow, reg_thresh as u8)?;
 
@@ -305,9 +312,8 @@ where
 
     /// read pressure registers
     pub fn read_pressure(mut self) -> Result<Pressure, Error<E>> {
-        let p_low = self.read_register(Registers::PressureOutL)? as u32;
-        let p_high = self.read_register(Registers::PressureOutH)? as u32;
-        let p_xlow = self.read_register(Registers::PressureOutXtraLow)? as u32;
+        let mut data: [u8, 3];
+        self.read_registers(Registers::PressureOutXtraLow, *data);
 
         let p_reg: u32 = p_low << 8 | p_high << 16 | p_xlow;
         let range = match self.measuring_range_p {
@@ -343,6 +349,13 @@ where
             .write_read(address, &[register as u8], &mut data)
             .map_err(Error::I2C)
             .and(Ok(data[0]))
+    }
+
+    fn read_registers(&mut self, register: Registers, data: &mut [u8]) -> Result<(), Error<E>> {
+        let address = self.address as u8;
+        self.i2c
+            .write_read(address, &[register as u8], data)
+            .map_err(Error::I2C)
     }
 
     fn set_bits(&mut self, register: Registers, bits: u8) -> Result<(), Error<E>> {
