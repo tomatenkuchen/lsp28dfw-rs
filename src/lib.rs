@@ -9,7 +9,7 @@
 extern crate embedded_hal;
 extern crate uom;
 
-use uom::si::{f32::*, pressure::hectopascal};
+use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
 
 /// All possible errors in this crate
 #[derive(Debug)]
@@ -95,9 +95,9 @@ enum Registers {
     /// ressure sensor high bits
     PressureOutH = 0x2a,
     /// temperature sensor low bits
-    TemperatureoutL = 0x2b,
+    TemperatureOutL = 0x2b,
     /// temperature sensor high bits
-    TemperatureoutH = 0x2c,
+    TemperatureOutH = 0x2c,
     /// fifo control
     FifoDataOutPressureXtraLow = 0x78,
     /// fifo control
@@ -316,6 +316,18 @@ where
         };
         let p: f32 = p_reg as f32 / range;
         Ok(Pressure::new::<hectopascal>(p))
+    }
+
+    /// read temperature registers
+    pub fn read_temperature(mut self) -> Result<TemperatureInterval, Error<E>> {
+        let t_high = self.read_register(Registers::TemperatureOutH)? as u16;
+        let t_low = self.read_register(Registers::TemperatureOutL)? as u16;
+
+        let t_raw = (t_high << 8 | t_low) as i16 as f32;
+        // scale temperature: manpage 40, section 9.24
+        let t = t_raw / 100_f32;
+
+        Ok(TemperatureInterval::new::<degree_celsius>(t))
     }
 
     fn write_register(&mut self, register: Registers, data: u8) -> Result<(), Error<E>> {
