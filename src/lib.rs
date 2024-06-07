@@ -314,7 +314,8 @@ where
             Range::Range1260hPa => 2048_f32,
             Range::Range4060hPa => 4096_f32,
         };
-        Pressure::new::<hectopascal>(p_reg as f32 / range)
+        let p: f32 = p_reg as f32 / range;
+        Ok(Pressure::new::<hectopascal>(p))
     }
 
     fn write_register(&mut self, register: Registers, data: u8) -> Result<(), Error<E>> {
