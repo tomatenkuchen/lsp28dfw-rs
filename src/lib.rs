@@ -9,7 +9,7 @@
 extern crate embedded_hal;
 extern crate uom;
 
-use uom::si::f32::*;
+use uom::si::{f32::*, pressure::hectopascal};
 
 /// All possible errors in this crate
 #[derive(Debug)]
@@ -244,6 +244,11 @@ where
         }
     }
 
+    /// reuse internal configuration from boot rom file
+    pub fn boot_rom_content(mut self) -> Result<(), Error<E>> {
+        self.set_bits(Registers::Control2, 0x80)
+    }
+
     /// enable low pass filter on results
     pub fn low_pass_filter(
         mut self,
@@ -296,6 +301,20 @@ where
             | (enable_sda_pin_pullup as u8) << 4
             | (enable_i3c_data_ready_pin as u8) << 5;
         self.write_register(Registers::InterfaceControl, reg)
+    }
+
+    /// read pressure registers
+    pub fn read_pressure(mut self) -> Result<Pressure, Error<E>> {
+        let p_low = self.read_register(Registers::PressureOutL)? as u32;
+        let p_high = self.read_register(Registers::PressureOutH)? as u32;
+        let p_xlow = self.read_register(Registers::PressureOutXtraLow)? as u32;
+
+        let p_reg: u32 = p_low << 8 | p_high << 16 | p_xlow;
+        let range = match self.measuring_range_p {
+            Range::Range1260hPa => 2048_f32,
+            Range::Range4060hPa => 4096_f32,
+        };
+        Pressure::new::<hectopascal>(p_reg as f32 / range)
     }
 
     fn write_register(&mut self, register: Registers, data: u8) -> Result<(), Error<E>> {
