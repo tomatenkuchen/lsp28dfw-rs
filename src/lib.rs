@@ -202,6 +202,27 @@ where
         self.clear_bits(Registers::InterruptCfg, interrupt_pressure_level as u8)
     }
 
+    /// tara for pressure output: all measurements from now on are relative to current pressure
+    /// level
+    pub fn autozero_set(&mut self) -> Result<(), Error<E>> {
+        self.set_bits(Registers::InterruptCfg, 0x20)
+    }
+
+    /// switch back from autozero to normal mode
+    pub fn autozero_reset(&mut self) -> Result<(), Error<E>> {
+        self.set_bits(Registers::InterruptCfg, 0x10)
+    }
+
+    /// interrupt generation is now issued based on the current pressure
+    pub fn auto_reference_pressure_set(&mut self) -> Result<(), Error<E>> {
+        self.set_bits(Registers::InterruptCfg, 0x80)
+    }
+
+    /// switch back from autozero to normal mode
+    pub fn auto_reference_pressure_reset(&mut self) -> Result<(), Error<E>> {
+        self.set_bits(Registers::InterruptCfg, 0x40)
+    }
+
     /// sends an identify request to the sensor and expects a certain number as an answer
     pub fn identify(mut self) -> Result<(), Error<E>> {
         const IDENTIFIER: u8 = 0xB4;
