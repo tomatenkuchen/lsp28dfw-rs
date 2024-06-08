@@ -312,15 +312,18 @@ where
 
     /// read pressure registers
     pub fn read_pressure(mut self) -> Result<Pressure, Error<E>> {
-        let mut data: [u8, 3];
-        self.read_registers(Registers::PressureOutXtraLow, *data);
+        let mut data: [u8; 3] = [0, 0, 0];
+        self.read_registers(Registers::PressureOutXtraLow, &mut data)?;
 
-        let p_reg: u32 = p_low << 8 | p_high << 16 | p_xlow;
+        let p_reg: u32 = (data[1] as u32) << 8 | (data[2] as u32) << 16 | data[0] as u32;
+
         let range = match self.measuring_range_p {
             Range::Range1260hPa => 2048_f32,
             Range::Range4060hPa => 4096_f32,
         };
+
         let p: f32 = p_reg as f32 / range;
+
         Ok(Pressure::new::<hectopascal>(p))
     }
 
@@ -354,7 +357,7 @@ where
     fn read_registers(&mut self, register: Registers, data: &mut [u8]) -> Result<(), Error<E>> {
         let address = self.address as u8;
         self.i2c
-            .write_read(address, &[register as u8], data)
+            .write_read(address, &[register as u8], &mut data[..])
             .map_err(Error::I2C)
     }
 
