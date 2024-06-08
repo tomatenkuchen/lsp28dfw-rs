@@ -11,6 +11,22 @@ extern crate uom;
 
 use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
 
+/// Device status struct
+pub struct Status {
+    is_boot_running: bool,
+    is_interrupt_active: bool,
+    is_low_pressure_event: bool,
+    is_high_pressure_event: bool,
+    unread_data_in_fifo: u8,
+    is_fifo_watermark_reached: bool,
+    is_fifo_overrun: bool,
+    is_fifo_full: bool,
+    is_temperature_data_overrun: bool,
+    is_pressure_data_overrun: bool,
+    is_temperature_data_available: bool,
+    is_pressure_data_available: bool,
+}
+
 /// All possible errors in this crate
 #[derive(Debug)]
 pub enum Error<E> {
@@ -44,21 +60,21 @@ pub enum LowPassStrength {
     High = 1,
 }
 
-/// Fifo Modes
+/// Fifo Modes, as described in manpage 13, paragraph 5.1-6
 #[derive(Debug, Default, Copy, Clone)]
 pub enum FifoMode {
-    /// no use of fifo
+    /// no use of fifo, or reset from other fifo mode (mandatory), manpage p 5.1
     #[default]
     Bypass = 0,
-    /// basic fifo buffering
-    FIFOMode,
-    /// continuous dynamic stream
+    /// basic fifo buffering. needs to be reset when full by switching to bypass mode
+    Fifo,
+    /// fifo behaves like a ring buffer
     ContinuousDynStream,
-    /// bypass to fifo
+    /// starts writing to fifo only after interrupt signal
     BypassToFifo = 5,
-    /// bypass to continuous dynamic stream
+    /// starts writing to fifo only after interrupt signal. behaves like ringbuffer.
     BypassToContinuous,
-    /// continuous dynamic stream to fifo
+    /// fifo behaves like ringbuffer, until interrupt switches behaviour to formal fifo mode
     ContinuousDynStreamToFifo,
 }
 
@@ -379,11 +395,53 @@ where
         self.write_register(Registers::FifoControl, reg_ctrl)
     }
 
-    /// read pressure registers
-    pub fn read_pressure(mut self) -> Result<Pressure, Error<E>> {
-        let mut data: [u8; 3] = [0, 0, 0];
-        self.read_registers(Registers::PressureOutXtraLow, &mut data)?;
+    /// takes documentation and packages it nicely into a struct
+    pub fn get_status(mut self) -> Result<Status, Error<E>> {
+        let mut data: [u8; 4] = [0; 4];
+        self.read_registers(Registers::InterruptSource, &mut data)?;
 
+        let status = Status {
+            is_boot_running: (data[0] & 0x80) > 0,
+            is_interrupt_active: (data[0] & 0x04) > 0,
+            is_low_pressure_event: (data[0] & 0x02) > 0,
+            is_high_pressure_event: (data[0] & 0x01) > 0,
+            unread_data_in_fifo: data[1],
+            is_fifo_watermark_reached: data[2] & 0x80 > 0,
+            is_fifo_overrun: (data[2] & 0x40) > 0,
+            is_fifo_full: (data[2] & 0x20) > 0,
+            is_temperature_data_overrun: (data[3] & 0x20) > 0,
+            is_pressure_data_overrun: (data[3] & 0x10) > 0,
+            is_temperature_data_available: (data[3] & 0x02) > 0,
+            is_pressure_data_available: (data[3] & 0x01) > 0,
+        };
+
+        Ok(status)
+    }
+
+    /// flush fifo
+    pub fn flush_fifo(mut self) -> Result<(), Error<E>> {
+        // check how many bytes we need to read
+        let number_of_unread_data = self.read_register(Registers::FifoStatus1)? as u16;
+        let number_of_registers_to_read: u16 = number_of_unread_data * 3 - 1;
+
+        // read fifo
+        let data: [u8; 384] = [0; 384];
+        self.read_registers(
+            Registers::FifoDataOutPressureXtraLow,
+            &mut data[0..number_of_registers_to_read],
+        );
+
+        // assemble data to pressure
+        &data[..]
+            .iter()
+            .cloned()
+            .chunks(3)
+            .map(|mut chunk| self.calc_pressure_from_regs(&mut chunk))
+            .collect::<Vec<Pressure>>()
+    }
+
+    /// calc pressure from 3 u8-data values from registers
+    fn calc_pressure_from_regs(self, data: &[u8]) -> Pressure {
         let p_reg: u32 = (data[1] as u32) << 8 | (data[2] as u32) << 16 | data[0] as u32;
 
         let range = match self.measuring_range_p {
@@ -393,7 +451,15 @@ where
 
         let p: f32 = p_reg as f32 / range;
 
-        Ok(Pressure::new::<hectopascal>(p))
+        Pressure::new::<hectopascal>(p)
+    }
+
+    /// read pressure registers
+    pub fn read_pressure(mut self) -> Result<Pressure, Error<E>> {
+        let mut data: [u8; 3] = [0, 0, 0];
+        self.read_registers(Registers::PressureOutXtraLow, &mut data)?;
+
+        Ok(self.calc_pressure_from_regs(&data))
     }
 
     /// read temperature registers
