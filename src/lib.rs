@@ -44,6 +44,24 @@ pub enum LowPassStrength {
     High = 1,
 }
 
+/// Fifo Modes
+#[derive(Debug, Default, Copy, Clone)]
+pub enum FifoMode {
+    /// no use of fifo
+    #[default]
+    Bypass = 0,
+    /// basic fifo buffering
+    FIFOMode,
+    /// continuous dynamic stream
+    ContinuousDynStream,
+    /// bypass to fifo
+    BypassToFifo = 5,
+    /// bypass to continuous dynamic stream
+    BypassToContinuous,
+    /// continuous dynamic stream to fifo
+    ContinuousDynStreamToFifo,
+}
+
 /// all registers with their register address
 #[repr(u8)]
 #[derive(Copy, Clone)]
@@ -297,17 +315,68 @@ where
         self.set_bits(Registers::Control2, 0x4)
     }
 
-    /// configure the pinout behaviour of some signaling pins
-    pub fn interface_control(
+    /// i²c or i³c pin configuration
+    pub fn ixc_interface_config(
         mut self,
-        disable_data_ready_pin_pulldown: bool,
         enable_sda_pin_pullup: bool,
         enable_i3c_data_ready_pin: bool,
     ) -> Result<(), Error<E>> {
-        let reg: u8 = (disable_data_ready_pin_pulldown as u8) << 2
-            | (enable_sda_pin_pullup as u8) << 4
-            | (enable_i3c_data_ready_pin as u8) << 5;
+        let reg: u8 = (enable_sda_pin_pullup as u8) << 4 | (enable_i3c_data_ready_pin as u8) << 5;
         self.write_register(Registers::InterfaceControl, reg)
+    }
+
+    /// configure the pinout behaviour of the interrupt/dataready pin
+    pub fn interrupt_pin_control(
+        mut self,
+        disable_pulldown: bool,
+        active_low: bool,
+        open_drain: bool,
+    ) -> Result<(), Error<E>> {
+        // config pulldown
+        let if_ctrl_reg: u8 = (disable_pulldown as u8) << 2;
+        self.set_bits(Registers::InterfaceControl, if_ctrl_reg)?;
+
+        // config signal gates
+        let ctrl3_reg: u8 = (active_low as u8) << 3 | (open_drain as u8) << 1;
+        self.write_register(Registers::InterfaceControl, ctrl3_reg)
+    }
+
+    /// config which signals get to create
+    pub fn interrupt_pin_signal_gate(
+        mut self,
+        enable_data_ready_signal: bool,
+        data_ready_pulsed: bool,
+        enable_interrupt_signal: bool,
+        fifo_full_signal: bool,
+        fifo_at_watermark_signal: bool,
+        fifo_overrun_signal: bool,
+    ) -> Result<(), Error<E>> {
+        let reg: u8 = (enable_data_ready_signal as u8) << 5
+            | (data_ready_pulsed as u8) << 6
+            | (enable_interrupt_signal as u8) << 4
+            | (fifo_full_signal as u8) << 2
+            | (fifo_at_watermark_signal as u8) << 1
+            | (fifo_overrun_signal as u8);
+        self.write_register(Registers::Control4, reg)
+    }
+
+    /// fifo control
+    pub fn fifo_config(
+        mut self,
+        mode: FifoMode,
+        stop_on_watermark: bool,
+        watermark: u8,
+    ) -> Result<(), Error<E>> {
+        // check if watermark is smaller than 64
+        if watermark > 64 {
+            return Err(Error::InvalidInputData);
+        }
+
+        // set control register
+        let reg_ctrl: u8 = (mode as u8) | (stop_on_watermark as u8) << 3;
+        self.write_register(Registers::FifoWatermark, watermark)?;
+
+        self.write_register(Registers::FifoControl, reg_ctrl)
     }
 
     /// read pressure registers
