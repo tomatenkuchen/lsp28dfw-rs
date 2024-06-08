@@ -368,7 +368,7 @@ where
         watermark: u8,
     ) -> Result<(), Error<E>> {
         // check if watermark is smaller than 64
-        if watermark > 64 {
+        if watermark > 128 {
             return Err(Error::InvalidInputData);
         }
 
