@@ -419,25 +419,28 @@ where
     }
 
     /// flush fifo
-    pub fn flush_fifo(mut self) -> Result<(), Error<E>> {
+    pub fn flush_fifo(&mut self) -> Result<&[Pressure], Error<E>> {
         // check how many bytes we need to read
         let number_of_unread_data = self.read_register(Registers::FifoStatus1)? as u16;
         let number_of_registers_to_read: u16 = number_of_unread_data * 3 - 1;
 
         // read fifo
-        let data: [u8; 384] = [0; 384];
-        self.read_registers(
-            Registers::FifoDataOutPressureXtraLow,
-            &mut data[0..number_of_registers_to_read],
-        );
+        let mut data: [u8; 384] = [0; 384];
+        let dataslice = &mut data[0..(number_of_registers_to_read as usize)];
+        self.read_registers(Registers::FifoDataOutPressureXtraLow, dataslice)?;
 
-        // assemble data to pressure
-        &data[..]
-            .iter()
-            .cloned()
+        // cut data to chunks, then to data points
+        let datachunks = dataslice
             .chunks(3)
-            .map(|mut chunk| self.calc_pressure_from_regs(&mut chunk))
-            .collect::<Vec<Pressure>>()
+            .map(|c| &self.calc_pressure_from_regs(c));
+
+        let mut pressure: [Pressure; 128] = [Pressure::new::<hectopascal>(0_f32); 128];
+
+        pressure[0..(number_of_unread_data as usize)]
+            .iter_mut()
+            .for_each(|x| *x = *datachunks.next().clone().unwrap());
+
+        Ok(&pressure[0..(number_of_unread_data as usize)])
     }
 
     /// calc pressure from 3 u8-data values from registers
