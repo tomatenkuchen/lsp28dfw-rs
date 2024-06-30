@@ -331,7 +331,7 @@ where
     }
 
     /// sends an identify request to the sensor and expects a certain number as an answer
-    pub fn identify(mut self) -> Result<(), Error<E>> {
+    pub fn identify(&mut self) -> Result<(), Error<E>> {
         const IDENTIFIER: u8 = 0xB4;
         let idn = self.read_register(Registers::WhoAmI)?;
         if idn != IDENTIFIER {
@@ -342,13 +342,13 @@ where
     }
 
     /// reuse internal configuration from boot rom file
-    pub fn boot_rom_content(mut self) -> Result<(), Error<E>> {
+    pub fn boot_rom_content(&mut self) -> Result<(), Error<E>> {
         self.set_bits(Registers::Control2, 0x80)
     }
 
     /// enable low pass filter on results
     pub fn low_pass_filter(
-        mut self,
+        &mut self,
         enable: bool,
         strength: LowPassStrength,
     ) -> Result<(), Error<E>> {
@@ -365,7 +365,7 @@ where
     }
 
     /// shadow u16 and u24 bit registers until all bytes are written
-    pub fn block_data_update(mut self, enable: bool) -> Result<(), Error<E>> {
+    pub fn block_data_update(&mut self, enable: bool) -> Result<(), Error<E>> {
         if enable {
             self.set_bits(Registers::Control2, 0x8)
         } else {
@@ -374,7 +374,7 @@ where
     }
 
     /// enable or disable pressure conversion on demand by writing 0 to Control1
-    pub fn oneshot(mut self, enable: bool) -> Result<(), Error<E>> {
+    pub fn oneshot(&mut self, enable: bool) -> Result<(), Error<E>> {
         if enable {
             self.set_bits(Registers::Control2, 0x1)
         } else {
@@ -383,13 +383,13 @@ where
     }
 
     /// resets all registers to startup
-    pub fn reset(mut self) -> Result<(), Error<E>> {
+    pub fn reset(&mut self) -> Result<(), Error<E>> {
         self.set_bits(Registers::Control2, 0x4)
     }
 
     /// i²c or i³c pin configuration
     pub fn ixc_interface_config(
-        mut self,
+        &mut self,
         enable_sda_pin_pullup: bool,
         enable_i3c_data_ready_pin: bool,
     ) -> Result<(), Error<E>> {
@@ -399,7 +399,7 @@ where
 
     /// configure the pinout behaviour of the interrupt/dataready pin
     pub fn interrupt_pin_control(
-        mut self,
+        &mut self,
         disable_pulldown: bool,
         active_low: bool,
         open_drain: bool,
@@ -415,7 +415,7 @@ where
 
     /// config which signals get to create
     pub fn interrupt_pin_signal_gate(
-        mut self,
+        &mut self,
         enable_data_ready_signal: bool,
         data_ready_pulsed: bool,
         enable_interrupt_signal: bool,
@@ -434,7 +434,7 @@ where
 
     /// fifo control
     pub fn fifo_config(
-        mut self,
+        &mut self,
         mode: FifoMode,
         stop_on_watermark: bool,
         watermark: u8,
@@ -452,7 +452,7 @@ where
     }
 
     /// takes documentation and packages it nicely into a struct
-    pub fn get_status(mut self) -> Result<Status, Error<E>> {
+    pub fn get_status(&mut self) -> Result<Status, Error<E>> {
         let mut data: [u8; 4] = [0; 4];
         self.read_registers(Registers::InterruptSource, &mut data)?;
 
@@ -475,7 +475,7 @@ where
     }
 
     /// flush fifo
-    pub fn flush_fifo(mut self) -> Result<(), Error<E>> {
+    pub fn flush_fifo(&mut self) -> Result<&[Pressure], Error<E>> {
         // check how many bytes we need to read
         let number_of_unread_data = self.read_register(Registers::FifoStatus1)? as usize;
         let number_of_registers_to_read = (number_of_unread_data * 3) as usize;
@@ -485,32 +485,23 @@ where
         let dataslice = &mut data[0..number_of_registers_to_read];
         self.read_registers(Registers::FifoDataOutPressureXtraLow, dataslice)?;
 
+        // have a reference to fifo buffer before closure catches my self
+        let buf = &mut self.fifo_buffer;
+
         // cut data to chunks of 3 bytes. Then assemble them to a pressure data point.
-        // somehow the borrow checker nags about moving self. I could not identify why. Seems to be
-        // some lambda magic I'm not familiar with. Any help is appreciated.
-        //let datachunks = dataslice.chunks(3).map(|c| self.calc_pressure_from_regs(c));
+        let mut datachunks = dataslice.chunks(3).map(|c| self.calc_pressure_from_regs(c));
 
-        todo!("the logic of this routine is not ready yet. It's not much code, so if you want to help, please check!");
+        let mut pressure_slice = &mut buf[0..number_of_unread_data];
 
-        Ok(())
-        /*
-        * here I want to collect the data into an array slice of the size of fifo buffer in the
-        * sensor. Again, I struggle to make the compiler happy, because I cannot create an array
-        * with static lifetime. Any suggestions?
-        *
-                let mut pressure = [Pressure::new::<hectopascal>(0_f32); 128];
-                let mut pressure_slice = pressure[0..number_of_unread_data];
+        pressure_slice
+            .iter_mut()
+            .for_each(|&mut ref mut x| *x = datachunks.next().unwrap());
 
-                pressure_slice
-                    .iter_mut()
-                    .for_each(|mut x| *x = *datachunks.next().unwrap());
-
-                Ok(&pressure[0..number_of_unread_data])
-        */
+        Ok(&self.fifo_buffer[0..number_of_unread_data])
     }
 
     /// calc pressure from 3 u8-data values from registers
-    fn calc_pressure_from_regs(self, data: &[u8]) -> Pressure {
+    fn calc_pressure_from_regs(&mut self, data: &[u8]) -> Pressure {
         let p_reg: u32 = (data[1] as u32) << 8 | (data[2] as u32) << 16 | data[0] as u32;
 
         let range = match self.measuring_range_p {
@@ -524,15 +515,15 @@ where
     }
 
     /// read pressure registers
-    pub fn read_pressure(mut self) -> Result<Pressure, Error<E>> {
+    pub fn read_pressure(&mut self) -> Result<Pressure, Error<E>> {
         let mut data: [u8; 3] = [0, 0, 0];
         self.read_registers(Registers::PressureOutXtraLow, &mut data)?;
-
-        Ok(self.calc_pressure_from_regs(&data))
+        let p = self.calc_pressure_from_regs(&data);
+        Ok(p)
     }
 
     /// read temperature registers
-    pub fn read_temperature(mut self) -> Result<TemperatureInterval, Error<E>> {
+    pub fn read_temperature(&mut self) -> Result<TemperatureInterval, Error<E>> {
         let t_high = self.read_register(Registers::TemperatureOutH)? as u16;
         let t_low = self.read_register(Registers::TemperatureOutL)? as u16;
 
