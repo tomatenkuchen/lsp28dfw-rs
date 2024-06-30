@@ -149,6 +149,57 @@ pub enum Range {
     Range4060hPa = 1,
 }
 
+/// pressure interrupt edge selection
+#[derive(Copy, Clone)]
+pub enum InterruptPressureLevel {
+    /// issue interrupt on pressure dropping under threshold
+    PressureLow = 1,
+    /// issue interrupt on pressure rising above threshold
+    PressureHigh = 2,
+}
+
+/// declare conversion speed of sensor
+#[derive(Copy, Clone)]
+pub enum OutputDataRate {
+    /// disable sensor, or use one shot mode for one single value
+    Stop,
+    /// one value per second
+    Hz1,
+    /// one value per second
+    Hz4,
+    /// one value per second
+    Hz10,
+    /// one value per second
+    Hz25,
+    /// one value per second
+    Hz50,
+    /// one value per second
+    Hz75,
+    /// one value per second
+    Hz100,
+    /// one value per second
+    Hz200,
+}
+
+/// defines how many measurements should be averaged over before publishing in result register
+#[derive(Copy, Clone)]
+pub enum Averaging {
+    /// averages 4 measurements to output
+    Over4,
+    /// averages 8 measurements to output
+    Over8,
+    /// averages 16 measurements to output
+    Over16,
+    /// averages 32 measurements to output
+    Over32,
+    /// averages 64 measurements to output
+    Over64,
+    /// averages 128 measurements to output
+    Over128,
+    /// averages 512 measurements to output
+    Over512 = 7,
+}
+
 /// configuration struct of sensor
 #[derive(Debug, Copy, Clone)]
 pub struct LPS28DFW<I2C> {
@@ -160,15 +211,6 @@ pub struct LPS28DFW<I2C> {
     measuring_range_p: Range,
     /// measureing buffer for fifo flushing
     fifo_buffer: [Pressure; 128],
-}
-
-/// pressure interrupt edge selection
-#[derive(Copy, Clone)]
-pub enum InterruptPressureLevel {
-    /// issue interrupt on pressure dropping under threshold
-    PressureLow = 1,
-    /// issue interrupt on pressure rising above threshold
-    PressureHigh = 2,
 }
 
 impl<I2C, E> LPS28DFW<I2C>
@@ -188,6 +230,17 @@ where
     /// Destroy driver instance, return I²C bus instance.
     pub fn destroy(self) -> I2C {
         self.i2c
+    }
+
+    /// start conversion of stop it
+    pub fn start(&mut self, data_rate: OutputDataRate, average: Averaging) -> Result<(), Error<E>> {
+        let reg: u8 = average as u8 | (data_rate as u8) << 3;
+        self.write_register(Registers::Control1, reg)
+    }
+
+    /// stop conversion of stop it
+    pub fn stop(&mut self) -> Result<(), Error<E>> {
+        self.write_register(Registers::Control1, 0u8)
     }
 
     /// enable an interrupt on pressure passing a threshold
