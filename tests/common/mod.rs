@@ -1,87 +1,19 @@
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTrans};
 use lps28dfw::LPS28DFW;
 
-pub const ADDR: u8 = 0b110_1000;
+#[test]
+fn embedded_hal_mock_test() -> () {
+    let expectations = [
+        I2cTrans::write(0x5C, vec![1, 2]),
+        I2cTrans::read(0x5C, vec![3, 4]),
+    ];
+    let mut i2c = I2cMock::new(&expectations);
 
-pub struct Register;
-#[allow(unused)]
-impl Register {
-    pub const SECONDS: u8 = 0x00;
-    pub const MINUTES: u8 = 0x01;
-    pub const HOURS: u8 = 0x02;
-    pub const DOW: u8 = 0x03;
-    pub const DOM: u8 = 0x04;
-    pub const MONTH: u8 = 0x05;
-    pub const YEAR: u8 = 0x06;
-    pub const SQWOUT: u8 = 0x07;
-    pub const RAM_BEGIN: u8 = 0x08;
-    pub const RAM_END: u8 = 0x3F;
-}
+    i2c.write(0x5C, &vec![1, 2]).unwrap();
 
-pub fn new(transactions: &[I2cTrans]) -> Ds1307<I2cMock> {
-    Ds1307::new(I2cMock::new(transactions))
-}
+    let mut buf = vec![0; 2];
+    i2c.read(0x5C, &mut buf).unwrap();
+    assert_eq!(buf, vec![3, 4]);
 
-pub fn destroy(dev: Ds1307<I2cMock>) {
-    dev.destroy().done();
-}
-
-#[macro_export]
-macro_rules! assert_invalid_input_data {
-    ($result:expr) => {
-        match $result {
-            Err(Error::InvalidInputData) => (),
-            _ => panic!("InvalidInputData error not returned."),
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! set_invalid_test {
-    ($name:ident, $method:ident, $( $value:expr ),+) => {
-        #[test]
-        fn $name() {
-            let mut rtc = new(&[]);
-            assert_invalid_input_data!(rtc.$method($($value),*));
-            destroy(rtc);
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! trans_read {
-    ($register:ident, [ $( $read_bin:expr ),+ ]) => {
-        [ I2cTrans::write_read(ADDR, vec![Register::$register], vec![$( $read_bin ),*]) ]
-    }
-}
-
-#[macro_export]
-macro_rules! trans_write {
-    ($register:ident, [ $( $read_bin:expr ),+ ]) => {
-        [ I2cTrans::write(ADDR, vec![Register::$register, $( $read_bin ),*]) ]
-    }
-}
-
-#[macro_export]
-macro_rules! get_test {
-    ($name:ident, $method:ident, $expected:expr, $transactions:expr) => {
-        #[test]
-        fn $name() {
-            let mut dev = new(&$transactions);
-            assert_eq!($expected, dev.$method().unwrap());
-            destroy(dev);
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! set_test {
-    ($name:ident, $method:ident, $value:expr, $transactions:expr) => {
-        #[test]
-        fn $name() {
-            let mut dev = new(&$transactions);
-            dev.$method($value).unwrap();
-            destroy(dev);
-        }
-    };
+    i2c.done();
 }
