@@ -478,25 +478,27 @@ where
     pub fn flush_fifo(&mut self) -> Result<&[Pressure], Error<E>> {
         // check how many bytes we need to read
         let number_of_unread_data = self.read_register(Registers::FifoStatus1)? as usize;
-        let number_of_registers_to_read = (number_of_unread_data * 3) as usize;
+        let number_of_registers_to_read = number_of_unread_data * 3;
 
         // read fifo
         let mut data: [u8; 384] = [0; 384];
         let dataslice = &mut data[0..number_of_registers_to_read];
         self.read_registers(Registers::FifoDataOutPressureXtraLow, dataslice)?;
 
-        // have a reference to fifo buffer before closure catches my self
-        let buf = &mut self.fifo_buffer;
-
         // cut data to chunks of 3 bytes. Then assemble them to a pressure data point.
         let mut datachunks = dataslice.chunks(3).map(|c| self.calc_pressure_from_regs(c));
 
-        let mut pressure_slice = &mut buf[0..number_of_unread_data];
+        // create a buffer for pressure data
+        let mut buf = [Pressure::new::<hectopascal>(0f32); 128];
+        let pressure_slice = &mut buf[0..number_of_unread_data];
 
+        // populate buffer with data from closure
         pressure_slice
             .iter_mut()
             .for_each(|&mut ref mut x| *x = datachunks.next().unwrap());
 
+        // copy data to member
+        self.fifo_buffer.copy_from_slice(pressure_slice);
         Ok(&self.fifo_buffer[0..number_of_unread_data])
     }
 
