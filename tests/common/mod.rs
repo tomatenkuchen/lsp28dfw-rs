@@ -1,19 +1,19 @@
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTrans};
-use lps28dfw::LPS28DFW;
+use lps28dfw::{I2CAddress, Range, LPS28DFW};
+use uom::si::f32::Pressure;
 
-#[test]
+#[cfg(test)]
 fn embedded_hal_mock_test() -> () {
     let expectations = [
-        I2cTrans::write(0x5C, vec![1, 2]),
-        I2cTrans::read(0x5C, vec![3, 4]),
+        I2cTrans::write(0x5C, vec![0x28]),
+        I2cTrans::read(0x5C, vec![0xFF, 0xFF, 0xFF]),
     ];
     let mut i2c = I2cMock::new(&expectations);
 
-    i2c.write(0x5C, &vec![1, 2]).unwrap();
+    let sens_p = LPS28DFW::new(i2c, I2CAddress::low, Range::Range1060hPa);
+    let p_meas = sens_p.read_pressure();
 
-    let mut buf = vec![0; 2];
-    i2c.read(0x5C, &mut buf).unwrap();
-    assert_eq!(buf, vec![3, 4]);
+    assert_eq!(p_meas, Pressure::new::<hectopascal>(1060f32));
 
     i2c.done();
 }

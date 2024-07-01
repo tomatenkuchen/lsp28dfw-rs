@@ -163,21 +163,21 @@ pub enum InterruptPressureLevel {
 pub enum OutputDataRate {
     /// disable sensor, or use one shot mode for one single value
     Stop,
-    /// one value per second
+    /// 1 value per second
     Hz1,
-    /// one value per second
+    /// 4 values per second
     Hz4,
-    /// one value per second
+    /// 10 values per second
     Hz10,
-    /// one value per second
+    /// 25 values per second
     Hz25,
-    /// one value per second
+    /// 50 values per second
     Hz50,
-    /// one value per second
+    /// 75 values per second
     Hz75,
-    /// one value per second
+    /// 100 values per second
     Hz100,
-    /// one value per second
+    /// 200 values per second
     Hz200,
 }
 

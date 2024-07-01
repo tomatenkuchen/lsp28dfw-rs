@@ -4,7 +4,7 @@ extern crate uom;
 
 use linux_embedded_hal::I2cdev;
 use lps28dfw::{Averaging, I2CAddress, OutputDataRate, Range, LPS28DFW};
-use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
+use uom::si::{pressure::hectopascal, temperature_interval::degree_celsius};
 
 fn main() {
     let dev = I2cdev::new("/dev/i2c-1").unwrap();
