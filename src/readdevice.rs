@@ -1,13 +1,12 @@
+#![deny(unsafe_code)]
+#![deny(missing_docs)]
+
 //! rust driver for ST LPS28DFW pressure sensor over i2c bus
 //! generalized by embedded_hal abstraction level to run on all
 //! platforms supported by embedded_hal
 
-use crate::{LPS28DFW, Registers, Error, Range}
-#![deny(unsafe_code)]
-#![deny(missing_docs)]
-
+use crate::{Error, Range, Registers, LPS28DFW};
 use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
-
 
 impl<I2C, E> LPS28DFW<I2C>
 where
@@ -32,9 +31,9 @@ where
 
         Ok(TemperatureInterval::new::<degree_celsius>(t))
     }
- 
+
     /// calc pressure from 3 u8-data values from registers
-    fn calc_pressure_from_regs(&mut self, data: &[u8]) -> Pressure {
+    pub fn calc_pressure_from_regs(&mut self, data: &[u8]) -> Pressure {
         let p_reg: u32 = (data[1] as u32) << 8 | (data[2] as u32) << 16 | data[0] as u32;
 
         let range = match self.measuring_range_p {

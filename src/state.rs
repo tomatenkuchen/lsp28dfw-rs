@@ -1,11 +1,11 @@
+#![deny(unsafe_code)]
+#![deny(missing_docs)]
+
 //! rust driver for ST LPS28DFW pressure sensor over i2c bus
 //! generalized by embedded_hal abstraction level to run on all
 //! platforms supported by embedded_hal
 
-use crate::{LPS28DFW, Registers, Error}
-#![deny(unsafe_code)]
-#![deny(missing_docs)]
-
+use crate::{Error, Registers, LPS28DFW};
 use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
 
 /// Device status struct
@@ -24,11 +24,20 @@ pub struct Status {
     is_pressure_data_available: bool,
 }
 
+/// Low pass filter strength
+#[derive(Debug, Default, Copy, Clone)]
+pub enum LowPassStrength {
+    /// ODR/4
+    #[default]
+    Low = 0,
+    /// ODR/9
+    High = 1,
+}
+
 impl<I2C, E> LPS28DFW<I2C>
 where
     I2C: embedded_hal::i2c::I2c<Error = E>,
 {
-
     /// tara for pressure output: all measurements from now on are relative to current pressure
     /// level
     pub fn autozero_set(&mut self) -> Result<(), Error<E>> {
