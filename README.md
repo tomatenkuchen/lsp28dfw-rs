@@ -1,5 +1,3 @@
-# Rust DS1307 Real-Time Clock Driver
-
 # hardware driver for ST LPS28DFW pressure sensor
 
 This is a platform agnostic Rust driver for the LPS28DFW pressure sensor from ST,
@@ -15,7 +13,8 @@ This driver allows you to:
 
 ## The device
 
-LPS28DFW is a high precision MEMS pressure and temperature sensor for multiple fluids. Pressure measuring range is variable between 1024 and 4096 kPa.
+LPS28DFW is a high precision MEMS pressure and temperature sensor for multiple
+fluids. Pressure measuring range is variable between 1024 and 4096 kPa.
 
 Datasheet: [LPS28DFW](https://www.st.com/resource/en/datasheet/lps28dfw.pdf)
 
@@ -41,11 +40,11 @@ fn main() {
 
 ## Todos
 
-- [ ] fifo control and status methods
-- [ ] temperature sensor methods
-- [ ] pressure data output methods
-- [ ] oneshot mode
-- [ ] autoresets
+- [x] fifo control and status methods
+- [x] temperature sensor methods
+- [x] pressure data output methods
+- [x] oneshot mode
+- [x] autoresets
 - [ ] update tests
 - [ ] create raspberry pi example for i2c testing
 
@@ -63,7 +62,8 @@ For questions, issues, feature requests, and other changes, please file an
 
 Licensed under
 
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+- MIT license ([LICENSE-MIT](<http://opensource.org/licenses/MIT>))
+- Apache License, Version 2.0 ([LICENSE-APACHE](<http://www.apache.org/licenses/LICENSE-2.0>))
 
 ### Contributing
 
