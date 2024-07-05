@@ -29,6 +29,15 @@ pub enum Error<E> {
     DeviceIdentityFailure,
 }
 
+/// Low pass filter strength
+#[derive(Debug, Copy, Clone)]
+pub enum LowPassStrength {
+    ///ODR/4
+    Low = 0,
+    /// ODR/9
+    High = 1,
+}
+
 /// the sensor supports multiple address via a address pin.
 /// if the address pin is connected to ground, look for the
 /// sensor on Low, otherwise on High
@@ -41,14 +50,55 @@ pub enum I2CAddress {
     High = 0x5D,
 }
 
-/// Low pass filter strength
-#[derive(Debug, Default, Copy, Clone)]
-pub enum LowPassStrength {
-    /// ODR/4
-    #[default]
-    Low = 0,
-    /// ODR/9
-    High = 1,
+/// declare conversion speed of sensor
+#[derive(Copy, Clone)]
+pub enum OutputDataRate {
+    /// disable sensor, or use one shot mode for one single value
+    Stop,
+    /// 1 value per second
+    Hz1,
+    /// 4 values per second
+    Hz4,
+    /// 10 values per second
+    Hz10,
+    /// 25 values per second
+    Hz25,
+    /// 50 values per second
+    Hz50,
+    /// 75 values per second
+    Hz75,
+    /// 100 values per second
+    Hz100,
+    /// 200 values per second
+    Hz200,
+}
+
+/// defines how many measurements should be averaged over before publishing in result register
+#[derive(Copy, Clone)]
+pub enum Averaging {
+    /// averages 4 measurements to output
+    Over4,
+    /// averages 8 measurements to output
+    Over8,
+    /// averages 16 measurements to output
+    Over16,
+    /// averages 32 measurements to output
+    Over32,
+    /// averages 64 measurements to output
+    Over64,
+    /// averages 128 measurements to output
+    Over128,
+    /// averages 512 measurements to output
+    Over512 = 7,
+}
+
+/// pressure interrupt edge selection
+#[derive(Copy, Clone)]
+pub enum InterruptPressureLevel {
+    /// issue interrupt on pressure dropping under threshold
+    PressureLow = 1,
+    /// issue interrupt on pressure rising above threshold
+    PressureHigh = 2,
 }
 
 /// Fifo Modes, as described in manpage 13, paragraph 5.1-6
@@ -67,6 +117,15 @@ pub enum FifoMode {
     BypassToContinuous,
     /// fifo behaves like ringbuffer, until interrupt switches behaviour to formal fifo mode
     ContinuousDynStreamToFifo,
+}
+
+/// measurement range for sensor
+#[derive(Debug, Copy, Clone)]
+pub enum Range {
+    /// minimum range of 1260 hPa
+    Range1260hPa = 0,
+    /// max range of 4060 hPa
+    Range4060hPa = 1,
 }
 
 /// all registers with their register address
@@ -131,55 +190,20 @@ enum Registers {
     FifoDataOutPressureHigh = 0x7a,
 }
 
-/// measurement range for sensor
-#[derive(Debug, Copy, Clone)]
-pub enum Range {
-    /// minimum range of 1260 hPa
-    Range1260hPa = 0,
-    /// max range of 4060 hPa
-    Range4060hPa = 1,
-}
-
-/// declare conversion speed of sensor
-#[derive(Copy, Clone)]
-pub enum OutputDataRate {
-    /// disable sensor, or use one shot mode for one single value
-    Stop,
-    /// 1 value per second
-    Hz1,
-    /// 4 values per second
-    Hz4,
-    /// 10 values per second
-    Hz10,
-    /// 25 values per second
-    Hz25,
-    /// 50 values per second
-    Hz50,
-    /// 75 values per second
-    Hz75,
-    /// 100 values per second
-    Hz100,
-    /// 200 values per second
-    Hz200,
-}
-
-/// defines how many measurements should be averaged over before publishing in result register
-#[derive(Copy, Clone)]
-pub enum Averaging {
-    /// averages 4 measurements to output
-    Over4,
-    /// averages 8 measurements to output
-    Over8,
-    /// averages 16 measurements to output
-    Over16,
-    /// averages 32 measurements to output
-    Over32,
-    /// averages 64 measurements to output
-    Over64,
-    /// averages 128 measurements to output
-    Over128,
-    /// averages 512 measurements to output
-    Over512 = 7,
+/// Device status
+pub struct Status {
+    is_boot_running: bool,
+    is_interrupt_active: bool,
+    is_low_pressure_event: bool,
+    is_high_pressure_event: bool,
+    unread_data_in_fifo: u8,
+    is_fifo_watermark_reached: bool,
+    is_fifo_overrun: bool,
+    is_fifo_full: bool,
+    is_temperature_data_overrun: bool,
+    is_pressure_data_overrun: bool,
+    is_temperature_data_available: bool,
+    is_pressure_data_available: bool,
 }
 
 /// configuration struct of sensor

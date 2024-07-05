@@ -9,50 +9,8 @@
 extern crate embedded_hal;
 extern crate uom;
 
-use crate::{Error, Registers, LPS28DFW};
+use crate::{Averaging, Error, OutputDataRate, Registers, LPS28DFW};
 use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
-
-/// declare conversion speed of sensor
-#[derive(Copy, Clone)]
-pub enum OutputDataRate {
-    /// disable sensor, or use one shot mode for one single value
-    Stop,
-    /// 1 value per second
-    Hz1,
-    /// 4 values per second
-    Hz4,
-    /// 10 values per second
-    Hz10,
-    /// 25 values per second
-    Hz25,
-    /// 50 values per second
-    Hz50,
-    /// 75 values per second
-    Hz75,
-    /// 100 values per second
-    Hz100,
-    /// 200 values per second
-    Hz200,
-}
-
-/// defines how many measurements should be averaged over before publishing in result register
-#[derive(Copy, Clone)]
-pub enum Averaging {
-    /// averages 4 measurements to output
-    Over4,
-    /// averages 8 measurements to output
-    Over8,
-    /// averages 16 measurements to output
-    Over16,
-    /// averages 32 measurements to output
-    Over32,
-    /// averages 64 measurements to output
-    Over64,
-    /// averages 128 measurements to output
-    Over128,
-    /// averages 512 measurements to output
-    Over512 = 7,
-}
 
 impl<I2C, E> LPS28DFW<I2C>
 where

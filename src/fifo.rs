@@ -5,26 +5,8 @@
 //! generalized by embedded_hal abstraction level to run on all
 //! platforms supported by embedded_hal
 
-use crate::{Error, Registers, LPS28DFW};
+use crate::{Error, FifoMode, Registers, LPS28DFW};
 use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
-
-/// Fifo Modes, as described in manpage 13, paragraph 5.1-6
-#[derive(Debug, Default, Copy, Clone)]
-pub enum FifoMode {
-    /// no use of fifo, or reset from other fifo mode (mandatory), manpage p 5.1
-    #[default]
-    Bypass = 0,
-    /// basic fifo buffering. needs to be reset when full by switching to bypass mode
-    Fifo,
-    /// fifo behaves like a ring buffer
-    ContinuousDynStream,
-    /// starts writing to fifo only after interrupt signal
-    BypassToFifo = 5,
-    /// starts writing to fifo only after interrupt signal. behaves like ringbuffer.
-    BypassToContinuous,
-    /// fifo behaves like ringbuffer, until interrupt switches behaviour to formal fifo mode
-    ContinuousDynStreamToFifo,
-}
 
 impl<I2C, E> LPS28DFW<I2C>
 where

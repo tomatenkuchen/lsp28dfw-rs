@@ -5,34 +5,8 @@
 //! generalized by embedded_hal abstraction level to run on all
 //! platforms supported by embedded_hal
 
-use crate::{Error, Registers, LPS28DFW};
+use crate::{Error, LowPassStrength, Registers, Status, LPS28DFW};
 use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
-
-/// Device status struct
-pub struct Status {
-    is_boot_running: bool,
-    is_interrupt_active: bool,
-    is_low_pressure_event: bool,
-    is_high_pressure_event: bool,
-    unread_data_in_fifo: u8,
-    is_fifo_watermark_reached: bool,
-    is_fifo_overrun: bool,
-    is_fifo_full: bool,
-    is_temperature_data_overrun: bool,
-    is_pressure_data_overrun: bool,
-    is_temperature_data_available: bool,
-    is_pressure_data_available: bool,
-}
-
-/// Low pass filter strength
-#[derive(Debug, Default, Copy, Clone)]
-pub enum LowPassStrength {
-    /// ODR/4
-    #[default]
-    Low = 0,
-    /// ODR/9
-    High = 1,
-}
 
 impl<I2C, E> LPS28DFW<I2C>
 where

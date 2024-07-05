@@ -6,17 +6,8 @@
 //! generalized by embedded_hal abstraction level to run on all
 //! platforms supported by embedded_hal
 
-use crate::{Error, Range, Registers, LPS28DFW};
+use crate::{Error, InterruptPressureLevel, Range, Registers, LPS28DFW};
 use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
-
-/// pressure interrupt edge selection
-#[derive(Copy, Clone)]
-pub enum InterruptPressureLevel {
-    /// issue interrupt on pressure dropping under threshold
-    PressureLow = 1,
-    /// issue interrupt on pressure rising above threshold
-    PressureHigh = 2,
-}
 
 impl<I2C, E> LPS28DFW<I2C>
 where
