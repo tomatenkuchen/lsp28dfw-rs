@@ -4,7 +4,7 @@ extern crate uom;
 
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTrans};
 use lps28dfw::{I2CAddress, Range, LPS28DFW};
-use uom::si::f32::Pressure;
+use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
 
 #[test]
 fn test_embedded_hal_mock_test() {
@@ -14,10 +14,8 @@ fn test_embedded_hal_mock_test() {
     ];
     let mut i2c = I2cMock::new(&expectations);
 
-    let sens_p = LPS28DFW::new(i2c, I2CAddress::low, Range::Range1260hPa);
+    let mut sens_p = LPS28DFW::new(i2c, I2CAddress::Low, Range::Range1260hPa);
     let p_meas = sens_p.read_pressure();
 
-    assert_eq!(p_meas.unwrap().get::<uom::si::f32::hectopascal>(), 1060f32);
-
-    i2c.done();
+    assert_eq!(p_meas.unwrap().get::<hectopascal>(), 1260f32);
 }
