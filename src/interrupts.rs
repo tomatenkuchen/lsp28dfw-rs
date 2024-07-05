@@ -1,6 +1,5 @@
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
-#![no_std]
 
 //! rust driver for ST LPS28DFW pressure sensor over i2c bus
 //! generalized by embedded_hal abstraction level to run on all
