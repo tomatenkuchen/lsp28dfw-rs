@@ -21,6 +21,7 @@ linux-embedded-hal = "0.4"
 embedded-hal-mock = { version = "0.11", default-features = false, features = [
   "eh1",
 ] }
+approx = "0.5.1"
 
 [profile.release]
 lto = true
