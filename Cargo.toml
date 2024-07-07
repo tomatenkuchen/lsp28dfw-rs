@@ -1,6 +1,6 @@
 [package]
 name = "lps28dfw"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Timo Werner <t.w92@gmx.de>"]
 repository = "https://github.com/tomatenkuchen/lps28dfw"
 license = "MIT or Apache-2.0"
