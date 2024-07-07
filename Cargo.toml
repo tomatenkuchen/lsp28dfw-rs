@@ -1,9 +1,9 @@
 [package]
 name = "lps28dfw"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Timo Werner <t.w92@gmx.de>"]
 repository = "https://github.com/tomatenkuchen/lps28dfw"
-license = "MIT or Apache-2.0"
+license = "MIT OR Apache-2.0"
 description = "Platform-agnostic Rust driver for the LPS28DFW pressure sensor"
 readme = "README.md"
 keywords = ["pressure", "ST", "MEMS", "multi-fluid"]
