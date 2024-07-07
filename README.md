@@ -45,7 +45,7 @@ fn main() {
 - [x] pressure data output methods
 - [x] oneshot mode
 - [x] autoresets
-- [ ] update tests
+- [x] update tests
 - [ ] create raspberry pi example for i2c testing
 
 ## Minimum Supported Rust Version (MSRV)

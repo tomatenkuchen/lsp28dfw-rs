@@ -9,7 +9,7 @@
 extern crate embedded_hal;
 extern crate uom;
 
-use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
+use uom::si::{f32::*, pressure::hectopascal};
 
 mod fifo;
 mod interrupts;

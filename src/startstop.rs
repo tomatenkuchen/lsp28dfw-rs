@@ -9,7 +9,6 @@ extern crate embedded_hal;
 extern crate uom;
 
 use crate::{Averaging, Error, OutputDataRate, Registers, LPS28DFW};
-use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
 
 impl<I2C, E> LPS28DFW<I2C>
 where

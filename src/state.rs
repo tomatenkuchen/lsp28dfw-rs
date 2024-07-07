@@ -6,7 +6,6 @@
 //! platforms supported by embedded_hal
 
 use crate::{Error, LowPassStrength, Registers, Status, LPS28DFW};
-use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
 
 impl<I2C, E> LPS28DFW<I2C>
 where
@@ -94,7 +93,7 @@ where
     /// takes documentation and packages it nicely into a struct
     pub fn get_status(&mut self) -> Result<Status, Error<E>> {
         let mut data: [u8; 4] = [0; 4];
-        self.read_registers(Registers::InterruptSource, &mut data)?;
+        self.read_registers(Registers::Status, &mut data)?;
 
         let status = Status {
             is_boot_running: (data[0] & 0x80) > 0,

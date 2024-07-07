@@ -6,7 +6,7 @@
 //! platforms supported by embedded_hal
 
 use crate::{Error, FifoMode, Registers, LPS28DFW};
-use uom::si::{f32::*, pressure::hectopascal, temperature_interval::degree_celsius};
+use uom::si::{f32::*, pressure::hectopascal};
 
 impl<I2C, E> LPS28DFW<I2C>
 where
