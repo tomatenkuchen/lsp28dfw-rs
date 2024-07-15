@@ -6,7 +6,6 @@
 //! platforms supported by embedded_hal
 
 use crate::{Error, InterruptPressureLevel, Range, Registers, LPS28DFW};
-use uom::si::{f32::*, pressure::hectopascal};
 
 impl<I2C, E> LPS28DFW<I2C>
 where

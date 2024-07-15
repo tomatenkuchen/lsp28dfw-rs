@@ -22,7 +22,7 @@ where
 
     /// read temperature registers
     pub fn read_temperature(&mut self) -> Result<TemperatureInterval, Error<E>> {
-        let mut data: [u8; 2] = [0,0];
+        let mut data: [u8; 2] = [0, 0];
         self.read_registers(Registers::TemperatureOutL, &mut data)?;
 
         let t_raw = ((data[1] as u16) << 8 | data[0] as u16) as i16 as f32;
@@ -41,8 +41,8 @@ where
             Range::Range4060hPa => 4060_f32,
         };
 
-        let p: f32 = p_reg as f32 * range / (2f32.powf(24.));
-
+        let digits: i32 = 1 << 24;
+        let p: f32 = (p_reg as f32) * range / digits as f32;
         Pressure::new::<hectopascal>(p)
     }
 }

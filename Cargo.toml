@@ -1,6 +1,6 @@
 [package]
 name = "lps28dfw"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Timo Werner <t.w92@gmx.de>"]
 repository = "https://github.com/tomatenkuchen/lps28dfw"
 license = "MIT OR Apache-2.0"
@@ -14,7 +14,7 @@ include = ["/**/*.rs", "/Cargo.toml", "/README.md", "/LICENSE-MIT"]
 
 [dependencies]
 embedded-hal = "1.0"
-uom = "0.36.0"
+uom = { version = "0.36.0", default-features = false, features = ["f32", "si"] }
 
 [dev-dependencies]
 linux-embedded-hal = "0.4"
